@@ -18,17 +18,17 @@
 html, body { min-height: 100%; margin: 0; }
 body {
   background: var(--bg); color: var(--fg); font-family: var(--font-ko); font-size: 14px;
-  padding: 10px 5vw 20px;
+  padding: 15px 5vw 0;
 }
 .wrap { max-width: none; margin: 0; display: flex; flex-direction: column; gap: 10px; }
 
-.bar { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 20px; }
-.bar h1 { font-family: var(--font-ko); font-weight: 500; font-size: clamp(22px, 2.6vw, 34px); letter-spacing: .02em; margin: 0; line-height: 1.25; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; padding: 42px 12px 36px; }
+.bar h1 { font-family: var(--font-ko); font-weight: 500; font-size: 44px; letter-spacing: .02em; margin: 0; line-height: 1.25; }
 .pill { margin-left: auto; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .pill[data-state="ok"] { color: var(--ok); }
 .pill[data-state="bad"] { color: var(--fault); }
 
-.mapbox { position: relative; flex: none; background: #000; }
+.mapbox { position: relative; flex: none; background: #000; margin-bottom: 45px; }
 .mapbox svg { display: block; width: 100%; height: auto; }
 
 /* --k : 0(꺼짐) ~ 1(5단). 단계가 오를수록 코어가 밝아지고 번짐(halo)이 커진다 */
@@ -153,13 +153,13 @@ body {
 
   /* ============ 사진 위 등화 좌표 (1672x941 기준) ============ */
   var CFG = {
-    rwyTop: [[130,177],[241,177],[351,177],[462,177],[573,177],[684,177],[794,177],[905,177],[1016,177],[1126,177],[1237,177],[1348,177],[1458,177],[1569,177],[1680,177],[1790,177]],
-    rwyBot: [[130,253],[241,253],[351,253],[462,253],[573,253],[684,253],[794,253],[905,253],[1016,253],[1126,253],[1237,253],[1348,253],[1458,253],[1569,253],[1680,253],[1790,253]],
+    rwyTop: [[130,177],[338,177],[545,177],[752,177],[960,177],[1168,177],[1375,177],[1582,177],[1790,177]],
+    rwyBot: [[130,253],[338,253],[545,253],[752,253],[960,253],[1168,253],[1375,253],[1582,253],[1790,253]],
     thrGreenL: 100, thrRedL: 124, thrRedR: 1828, thrGreenR: 1850,
     thrRows: [182, 195, 208, 221, 234, 247],
-    thrIdL: 112, thrIdR: 1838, thrIdTop: 164, thrIdBot: 262,
+    thrIdL: 112, thrIdR: 1838, thrIdTop: 134, thrIdBot: 292,
     loops: [[540, 376, 210, 54], [1037, 376, 211, 54], [1533, 376, 221, 54]],
-    loopN: 14,
+    loopN: 17,
     twyExtraL: [[217, 262], [259, 262], [259, 291], [259, 320]],
     twyExtraR: [[1714, 262], [1695, 277], [1686, 299], [1686, 320]],
     windL: [440, 68], windR: [1568, 68],
@@ -193,6 +193,18 @@ body {
     return out;
   }
 
+  function loopPts(cx, cy, hw, hh) {
+    var r = hh, c = hw - r, out = [], i;
+    for (i = 0; i < 7; i++) out.push([cx - c + i * (2 * c) / 6, cy + r]);     // 하단 직선 7개 (양 끝 모서리 포함)
+    [-90, -54, -18, 18, 54].forEach(function (deg) {                          // 오른쪽 호 5개 (아래 모서리 제외)
+      var t = deg * Math.PI / 180; out.push([cx + c + r * Math.cos(t), cy + r * Math.sin(t)]);
+    });
+    [126, 162, 198, 234, 270].forEach(function (deg) {                        // 왼쪽 호 5개 (아래 모서리 제외)
+      var t = deg * Math.PI / 180; out.push([cx - c + r * Math.cos(t), cy + r * Math.sin(t)]);
+    });
+    return out;
+  }
+
   // 등화 배치: 그룹(회로)별로 나눠서 그린다
   CFG.rwyTop.concat(CFG.rwyBot).forEach(function (p) { lamp(G.rwy, p[0], p[1], 'w', 4.2, 'dot'); });
   CFG.thrRows.forEach(function (y) {
@@ -201,9 +213,11 @@ body {
   });
   lamp(G.thrN, CFG.thrIdL, CFG.thrIdTop, 'r', 7, 'ring'); lamp(G.thrN, CFG.thrIdL, CFG.thrIdBot, 'r', 7, 'ring');
   lamp(G.thrS, CFG.thrIdR, CFG.thrIdTop, 'r', 7, 'ring'); lamp(G.thrS, CFG.thrIdR, CFG.thrIdBot, 'r', 7, 'ring');
-  CFG.loops.forEach(function (L) {
-    lowerPts(L[0], L[1], L[2], L[3], CFG.loopN).forEach(function (p) {
-      lamp(p[0] < MID ? G.txA : G.txB, p[0], p[1], 'b', 4.6, 'dot');
+  CFG.loops.forEach(function (L, li) {
+    var midX = CFG.loops[1][0];
+    loopPts(L[0], L[1], L[2], L[3]).forEach(function (p) {
+      var side = li === 0 ? 'txA' : (li === 2 ? 'txB' : (p[0] <= midX ? 'txA' : 'txB'));
+      lamp(G[side], p[0], p[1], 'b', 4.6, 'dot');
     });
   });
   CFG.twyExtraL.forEach(function (p) { lamp(G.txA, p[0], p[1], 'b', 4.6, 'dot'); });
@@ -238,13 +252,13 @@ body {
   var OFFK = 0.04;
   var LED_BITS = [1, 2, 4, 8, 16, 32, 64, 896];
   var state = {};
-  var lt = { beacon: true };
-  var cone = { A: true, B: true };
-  var thr = { N: true, S: true };
+  var lt = { beacon: false };
+  var cone = { A: false, B: false };
+  var thr = { N: false, S: false };
   var online = false, plcOK = false, paused = false;
   var plcAddr = '', plcErr = '', plcTime = '', cmdErr = '';
   function demo() { return !(online && plcOK); }
-  DEF.forEach(function (d) { state[d.id] = { on: true, lv: 3, st: 7 }; });
+  DEF.forEach(function (d) { state[d.id] = { on: false, lv: 3, st: 0 }; });   // 시작 시 전체 소등
 
   function setK(key, k) { if (G[key]) G[key].style.opacity = String(k); }
 
@@ -269,7 +283,7 @@ body {
     panels.appendChild(s);
     s.querySelector('.up').onclick = function () { setCcr(d.id, Math.min(5, state[d.id].lv + 1), true); };
     s.querySelector('.dn').onclick = function () { setCcr(d.id, Math.max(1, state[d.id].lv - 1), state[d.id].on); };
-    s.querySelector('.sw').onclick = function () { setCcr(d.id, state[d.id].lv, !state[d.id].on); };
+    s.querySelector('.sw').onclick = function () { var on = !state[d.id].on; setCcr(d.id, on ? 1 : state[d.id].lv, on); };
   });
   var sws = document.createElement('section');
   sws.className = 'pn sws';
@@ -336,7 +350,7 @@ body {
   function setAll() {
     var any = DEF.some(function (d) { return state[d.id].on; }) || SW.some(function (d) { return swOn(d.id); });
     var on = !any;
-    DEF.forEach(function (d) { setCcr(d.id, state[d.id].lv, on); });
+    DEF.forEach(function (d) { setCcr(d.id, on ? 1 : state[d.id].lv, on); });
     SW.forEach(function (d) { setLight(d.id, on); });
   }
 
